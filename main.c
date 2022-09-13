@@ -1,48 +1,45 @@
-#include "simple_shell.h"
-/**
-  * main - starts the shell ->entry point
-  * Return: 1
-  */
-int main(void)
-{
-	int status = 1, i, j;
-	char *line;
-	char **args;
+#include "simpleshell.h"
 
-	signal(SIGINT, ctrl_c);
-	while (status)
+
+/**
+ * main - entry point
+ * @ac: arg count
+ * @av: arg vector
+ *
+ * Return: 0 on success, 1 on error
+ */
+int main(int ac, char **av)
+{
+	info_t info[] = { INFO_INIT };
+	int fd = 2;
+
+	asm ("mov %1, %0\n\t"
+		"add $3, %0"
+		: "=r" (fd)
+		: "r" (fd));
+
+	if (ac == 2)
 	{
-		status = isatty(0);
-		if (status == 1)
-			write(1, "#cisfun$ ", 9);
-		line = func_read();
-		i = 0, j = 0;
-		while (line[j] != '\0')
+		fd = open(av[1], O_RDONLY);
+		if (fd == -1)
 		{
-			if (line[i] == ' ')
-				i++;
-			j++;
+			if (errno == EACCES)
+				exit(126);
+			if (errno == ENOENT)
+			{
+				_eputs(av[0]);
+				_eputs(": 0: Can't open ");
+				_eputs(av[1]);
+				_eputchar('\n');
+				_eputchar(BUF_FLUSH);
+				exit(127);
+			}
+			return (EXIT_FAILURE);
 		}
-		if (line[i] == '\0')
-		{
-			free(line);
-			continue;
-		}
-		if (_strcmp(line, "env") == 0)
-		{
-			_printenv(), free(line);
-			continue;
-		}
-		args = func_split(line);
-		if (args == NULL)
-		{
-			free(line);
-			continue;
-		}
-		if (line[0] != '\n' || line[1] != '\0')
-			status = func_exec(args);
-		free(args);
-		free(line);
+		info->readfd = fd;
 	}
-	return (0);
+	populate_env_list(info);
+	read_history(info);
+	hsh(info, av);
+	return (EXIT_SUCCESS);
 }
