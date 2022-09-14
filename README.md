@@ -1,1 +1,1 @@
-simple shell pair project
+My Simple Shell project
